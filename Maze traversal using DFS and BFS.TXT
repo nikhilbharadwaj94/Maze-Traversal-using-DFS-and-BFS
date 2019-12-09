@@ -1,0 +1,672 @@
+/*HW4 - DFS and BFS
+Name-Nikhil Bharadwaj
+SUID-469484436
+email- nibharad@syr.edu*/
+
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include<stack>
+#include<queue>
+#include<cmath>
+
+using namespace std;
+int dimension;
+
+
+class cell {
+public:
+	int id;
+	int wall;
+	bool visited;
+	bool in_structure;
+	int from;
+	cell() {
+		this->id = -1;
+		this->wall = 15;
+		this->visited = false;
+		this->in_structure = false;
+		this->from = -1;
+	}
+
+};//end of cell structure
+
+//Defining push_neighbors logic which will be used by both DFS and BFS
+void push_neighbors_DFS(vector<cell>& maze, stack<cell>& s, int id, int wall_value) {
+	int l = dimension;
+	bool south, east, north, west;
+	south = east = north = west = true;
+	if (wall_value >= 8) {
+		west = false;
+		wall_value -= 8;
+	}
+	if (wall_value >= 4) {
+		north = false;
+		wall_value -= 4;
+	}
+	if (wall_value >= 2) {
+		east = false;
+		wall_value -= 2;
+	}
+	if (wall_value >= 1) {
+		south = false;
+		wall_value -= 1;
+	}
+	//The next 4 checks are to handle edge conditions for pushing nodes into the stack
+	if (id == 0) {//first row first corner
+		if (south && !maze[l].in_structure) {
+			maze[l].from = id;
+			s.push(maze[l]);
+			maze[l].in_structure = true;
+		}
+		if (east && !maze[1].in_structure) {
+			maze[1].from = id;
+			s.push(maze[1]);
+			maze[1].in_structure = true;
+		}
+	}
+	else if (id == (l - 1)) { // first row last corner
+		if (south && !maze[2 * l - 1].in_structure) {
+			maze[2 * l - 1].from = id;
+			s.push(maze[2 * l - 1]);
+			maze[2 * l - 1].in_structure = true;
+		}
+		if (west && !maze[l - 2].in_structure) {
+			maze[l - 2].from = id;
+			s.push(maze[l - 2]);
+			maze[l - 2].in_structure = true;
+		}
+	}
+	else if (id == (l * (l - 1))) {//last row first corner
+		if (east && !maze[((l * (l - 1)) + 1)].in_structure) {
+			maze[((l * (l - 1)) + 1)].from = id;
+			s.push(maze[((l * (l - 1)) + 1)]);
+			maze[((l * (l - 1)) + 1)].in_structure = true;
+		}
+		if (north && !maze[2 * l].in_structure) {
+			maze[2 * l].from = id;
+			s.push(maze[2 * l]);
+			maze[2 * l].in_structure = true;
+		}
+	}
+	else if (id == (l * l - 1)) {//last row last corner
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[l * l - 2].in_structure) {
+			maze[l * l - 2].from = id;
+			s.push(maze[l * l - 2]);
+			maze[l * l - 2].in_structure = true;
+		}
+	}
+	else if (id > 0 && id < (l - 1)) {//this will mean first row except edges
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+	else if (id % l == 0) {//this will mean first column except edges because we have handled column edges before
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+	}
+	else if ((id + 1) % l == 0) {//This will handle the last column except edges because it is already handled above
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+	else if (id > (l * (l - 1)) && id < ((l * l) - 1)) {//This will handle last row except the edges as the edges are already handled above
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+	else {//This means that the cell is somewhere in the middle and so we will have to push all directions. We will reach this point only when all the other above checks have failed
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+
+
+};
+
+void push_neighbors_BFS(vector<cell>& maze, queue<cell>& s, int id, int wall_value) {
+	int l = dimension;
+	bool south, east, north, west;
+	south = east = north = west = true;
+	if (wall_value >= 8) {
+		west = false;
+		wall_value -= 8;
+	}
+	if (wall_value >= 4) {
+		north = false;
+		wall_value -= 4;
+	}
+	if (wall_value >= 2) {
+		east = false;
+		wall_value -= 2;
+	}
+	if (wall_value >= 1) {
+		south = false;
+		wall_value -= 1;
+	}
+	//The next 4 checks are to handle edge conditions for pushing nodes into the stack
+	if (id == 0) {//first row first corner
+		if (south && !maze[l].in_structure) {
+			maze[l].from = id;
+			s.push(maze[l]);
+			maze[l].in_structure = true;
+		}
+		if (east && !maze[1].in_structure) {
+			maze[1].from = id;
+			s.push(maze[1]);
+			maze[1].in_structure = true;
+		}
+	}
+	else if (id == (l - 1)) { // first row last corner
+		if (south && !maze[2 * l - 1].in_structure) {
+			maze[2 * l - 1].from = id;
+			s.push(maze[2 * l - 1]);
+			maze[2 * l - 1].in_structure = true;
+		}
+		if (west && !maze[l - 2].in_structure) {
+			maze[l - 2].from = id;
+			s.push(maze[l - 2]);
+			maze[l - 2].in_structure = true;
+		}
+	}
+	else if (id == (l * (l - 1))) {//last row first corner
+		if (east && !maze[((l * (l - 1)) + 1)].in_structure) {
+			maze[((l * (l - 1)) + 1)].from = id;
+			s.push(maze[((l * (l - 1)) + 1)]);
+			maze[((l * (l - 1)) + 1)].in_structure = true;
+		}
+		if (north && !maze[2 * l].in_structure) {
+			maze[2 * l].from = id;
+			s.push(maze[2 * l]);
+			maze[2 * l].in_structure = true;
+		}
+	}
+	else if (id == (l * l - 1)) {//last row last corner
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[l * l - 2].in_structure) {
+			maze[l * l - 2].from = id;
+			s.push(maze[l * l - 2]);
+			maze[l * l - 2].in_structure = true;
+		}
+	}
+	else if (id > 0 && id < (l - 1)) {//this will mean first row except edges
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+	else if (id % l == 0) {//this will mean first column except edges because we have handled column edges before
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+	}
+	else if ((id + 1) % l == 0) {//This will handle the last column except edges because it is already handled above
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+	else if (id > (l * (l - 1)) && id < ((l * l) - 1)) {//This will handle last row except the edges as the edges are already handled above
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+	else {//This means that the cell is somewhere in the middle and so we will have to push all directions. We will reach this point only when all the other above checks have failed
+		if (south && !maze[id + l].in_structure) {
+			maze[id + l].from = id;
+			s.push(maze[id + l]);
+			maze[id + l].in_structure = true;
+		}
+		if (east && !maze[id + 1].in_structure) {
+			maze[id + 1].from = id;
+			s.push(maze[id + 1]);
+			maze[id + 1].in_structure = true;
+		}
+		if (north && !maze[id - l].in_structure) {
+			maze[id - l].from = id;
+			s.push(maze[id - l]);
+			maze[id - l].in_structure = true;
+		}
+		if (west && !maze[id - 1].in_structure) {
+			maze[id - 1].from = id;
+			s.push(maze[id - 1]);
+			maze[id - 1].in_structure = true;
+		}
+	}
+
+
+};
+
+//function to print the solution
+void print_dfs_solution(vector<cell>& m, int end) {
+	stack<cell> print_stack;
+	cell c;
+	c = m[end];
+	//cout << "inside print stack \n";
+	print_stack.push(m[end]);
+	while (print_stack.top().from!=999999) {
+		print_stack.push(m[c.from]);
+		//cout << c.from<<" ";
+		c = m[c.from];
+	}
+	while (!print_stack.empty()) {
+		if (print_stack.top().id != end) {
+			cout << " " << print_stack.top().id << "->";
+		}
+		else {
+			cout << " " << print_stack.top().id << endl;
+		}
+		print_stack.pop();
+	}
+
+}
+
+//Defining BFS algorithm below
+void BFS(vector<cell>& maze, int n, int start, int end) {
+	queue<cell> q; // defining a queue structure as BFS is implemented using Queue structure.
+	q.push(maze[start]);
+	//maze[start].visited = true;
+	maze[start].in_structure = true;
+	maze[start].from = 999999;
+	cout << endl;
+	while (!q.empty()) {
+		int id = q.front().id;
+		if (q.front().id == end) {
+			maze[id].visited = true;
+			//cout << id;
+			print_dfs_solution(maze, end);
+			cout << "... is the solution found using BFS \n";
+			return;
+		}
+		else {
+			if (maze[q.front().id].visited == true) {
+				q.pop();
+				continue;
+			}
+			else {
+				maze[id].visited = true;
+				//cout << q.front().id << "->"; because i dont want to print all possible paths
+				q.pop();
+				push_neighbors_BFS(maze, q, id, maze[id].wall);
+			}
+		}
+	}
+
+	cout << "\nThe Queue is empty which means all possible routes have been exhausted. No solution available!!!\n";
+	return;
+};
+
+//Defining DFS algorithm below
+void DFS(vector<cell>& maze, int n, int start, int end) {
+	stack <cell> stak; //creating a stack structure to push cells onto the stack for backtracking
+	stak.push(maze[start]);
+	//maze[start].visited = true;
+	maze[start].in_structure = true;
+	maze[start].from = 999999;
+	cout << endl;
+	while (!stak.empty()) {
+		int id = stak.top().id;
+		if (stak.top().id == end) {
+			maze[id].visited = true;
+			//cout << id;
+			print_dfs_solution(maze, end);
+			cout << "... is the solution found using DFS \n";
+			return;
+		}
+		else {
+			if (maze[stak.top().id].visited == true) {
+				stak.pop();
+				continue;
+			}
+			else {
+				maze[id].visited = true;
+				//cout << stak.top().id << "->"; commenting this because it will print all possible routes which i dont want
+				stak.pop();
+				push_neighbors_DFS(maze, stak, id, maze[id].wall);
+			}
+		}
+	}
+	cout << "\nThe stack is empty which means all possible routes have been exhausted. No solution available!!!\n";
+
+	return;
+};
+void draw_maze(vector<cell>& maze_draw, int total_num_cells) {
+	//trying to print the maze structure:
+	for (int i = 0; i < total_num_cells; i++) {
+		int wall_value = maze_draw[i].wall;
+		if (i % dimension == 0 && i != 0) { //Drawing left and right walls and marking cell number
+			cout << endl;
+			for (int j = i - dimension; j < i; j++) {
+				int sideWall = maze_draw[j].wall;
+				if (sideWall >= 8) {
+					cout << "|";
+					sideWall -= 8;
+				}
+				else {
+					cout << " ";
+				}
+				if (j < 10) {
+					cout << "  " << j << "  ";
+				}
+				else if (j >= 10 && j < 100) {
+					cout << " " << j << "  ";
+				}
+				else {
+					cout << j << "  ";
+				}
+				if (sideWall >= 4) {
+					//cout << "+\'\'\'\'+";
+					sideWall -= 4;
+				}
+				else {
+					//cout << "     ";
+				}
+				if (sideWall >= 2) {
+					cout << "|";
+					sideWall -= 2;
+				}
+				else {
+					cout << " ";
+				}
+				if (sideWall >= 1) {
+					//	cout << "+____+";
+					sideWall -= 1;
+				}
+				else {
+					//	cout << "     ";
+				}
+				if (j == (i - 1)) {
+					cout << endl;
+				}
+			}
+		}
+
+		//all 0 to n-1(n) drawing top
+		if (wall_value >= 8) {
+			cout << "|";
+			wall_value -= 8;
+		}
+		else {
+			cout << "\'";
+		}
+		if (wall_value >= 4) {
+			cout << "\'\'\'\'\'";
+			wall_value -= 4;
+		}
+		else {
+			cout << "     ";
+		}
+		if (wall_value >= 2) {
+			cout << "|";
+			wall_value -= 2;
+		}
+		else {
+			cout << "\'";
+		}
+		if (wall_value >= 1) {
+			//south = false;
+			wall_value -= 1;
+		}
+		if (i == (total_num_cells - 1)) {
+			cout << endl;
+			for (int j = i - dimension + 1; j <= i; j++) {
+				int sideWall = maze_draw[j].wall;
+				if (sideWall >= 8) {
+					cout << "|";
+					sideWall -= 8;
+				}
+				else {
+					cout << " ";
+				}
+				if (j < 10) {
+					cout << "  " << j << "  ";
+				}
+				else if (j >= 10 && j < 100) {
+					cout << " " << j << "  ";
+				}
+				else {
+					cout << j << "  ";
+				}
+				if (sideWall >= 4) {
+					//cout << "+\'\'\'\'+";
+					sideWall -= 4;
+				}
+				else {
+					//cout << "     ";
+				}
+				if (sideWall >= 2) {
+					cout << "|";
+					sideWall -= 2;
+				}
+				else {
+					cout << " ";
+				}
+				if (sideWall >= 1) {
+					//	cout << "+____+";
+					sideWall -= 1;
+				}
+				else {
+					//	cout << "     ";
+				}
+				if (j == i) {
+					cout << endl;
+					//draw last line here
+					for (int k = i - dimension + 1; k <= i; k++) {
+						int botWall = maze_draw[k].wall;
+						if (botWall >= 8) {
+							cout << "\'";
+							botWall -= 8;
+						}
+						else {
+							cout << "\'";
+						}
+						if (botWall >= 4) {
+							//cout << "+\'\'\'\'+";
+							botWall -= 4;
+						}
+						else {
+							//cout << "     ";
+						}
+						if (botWall >= 2) {
+							cout << "\'";
+							botWall -= 2;
+						}
+						else {
+							cout << "\'";
+						}
+						if (botWall >= 1) {
+							cout << "\'\'\'\'\'";
+							botWall -= 1;
+						}
+						else {
+							cout << "     ";
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+//defining main function below
+void main() {
+	//cout << "Let the games begin\n";
+	vector<cell> Maze1, Maze2;
+	int no_of_cells, starting_node, ending_node, wall_size;
+	fstream fileRef;
+	fileRef.open("maze.txt");
+	fileRef >> no_of_cells;
+	fileRef >> starting_node;
+	fileRef >> ending_node;
+	//calculating the dimension of the matrix
+	dimension = sqrt(no_of_cells);
+	cout << "\nThe dimension of the maze is " << dimension << " * " << dimension << endl;
+	cell cellbox1;
+	cout << "\nThe given graph is:-\n";
+	for (int i = 0; i < no_of_cells; i++) {
+		fileRef >> wall_size;
+		cellbox1.id = i;
+		cellbox1.wall = wall_size;
+		Maze1.push_back(cellbox1);
+		cout << " Cell " << i << " id is " << Maze1[i].id << " wall " << Maze1[i].wall << endl;
+	}
+	cout << "\nStarting cell is " << starting_node << endl;
+	cout << "\nDestination cell is " << ending_node << endl << endl;
+	//calling function to draw the Maze
+	cout << "Visualizing the Maze can be done as follows:- I have added cell numbers for ease of visualization\n";
+	draw_maze(Maze1, no_of_cells);
+	//calling DFS as it uses stack
+	cout << "\n Calling DFS to find a path from start to end:-\n";
+	DFS(Maze1, no_of_cells, starting_node, ending_node);
+	cell cellbox2;
+	fileRef.seekg(0);
+	fileRef >> no_of_cells;
+	fileRef >> starting_node;
+	fileRef >> ending_node;
+	for (int i = 0; i < no_of_cells; i++) {
+		fileRef >> wall_size;
+		cellbox2.id = i;
+		cellbox2.wall = wall_size;
+		Maze2.push_back(cellbox2);
+		//cout << " Cell " << i << " id is " << Maze2[i].id << " wall " << Maze2[i].wall << endl;
+	}
+	cout << "\n Calling BFS to find a path from start to end:-\n";
+	BFS(Maze2, no_of_cells, starting_node, ending_node);
+	getchar();
+	getchar();
+}
+/*maze.txt
+400
+0
+388
+12 4 5 4 5 5 5 5 4 5 5 4 6 12 5 7 13 4 4 7 10 9 6 9 6 13 5 6 10 12 6 10 10 10 12 5 4 3 9 7 8 7 8 6 9 4 7 10 11 10 10 10 9 1 0 7 9 6 13 6
+10 12 1 3 14 9 6 10 12 3 8 3 12 5 0 4 7 9 4 3 10 9 6 13 0 7 9 2 11 12 1 6 9 6 10 9 4 7 9 7 8 6 9 6 9 4 6 9 5 1 6 9 4 2 9 6 9 4 5 6
+10 9 5 3 12 3 9 5 5 4 3 12 3 8 6 8 6 8 5 3 8 5 6 12 3 14 12 6 13 2 13 3 13 2 9 3 8 3 12 6 8 6 9 3 14 9 2 9 7 9 6 13 6 9 5 4 3 12 3 10
+11 8 7 12 0 5 1 6 12 7 8 6 9 5 5 0 5 3 12 3 12 0 5 3 8 7 13 1 1 7 10 9 4 5 6 11 12 4 3 14 10 9 6 13 1 4 6 12 7 12 1 6 9 7 9 4 2 9 5 2
+8 7 8 7 12 3 9 2 13 0 7 9 4 5 5 3 8 5 7 10 8 6 9 6 8 5 6 8 6 9 7 12 3 12 4 7 9 4 5 3 10 9 7 9 0 4 1 1 2 12 6 9 7 10 9 5 4 3 12 7
+10 13 4 5 3 10 12 4 3 10 8 6 12 1 4 6 8 5 0 6 8 6 11 12 7 8 3 9 5 3 8 3 11 12 3 8 2 12 7 10 9 0 5 1 6 9 4 4 7 12 2 12 5 2 14 10 9 3 12 3
+12 3 12 4 3 13 2 11 12 0 3 9 6 10 9 3 12 6 9 6 9 5 3 9 5 7 9 7 8 1 5 7 11 9 5 5 3 9 5 3
+*/
